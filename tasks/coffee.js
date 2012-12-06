@@ -37,8 +37,6 @@ module.exports = function(grunt) {
   // ==========================================================================
 
   grunt.registerHelper('coffee', function(src, destPath, options, extension) {
-    var coffee = require('coffee-script'),
-        js = '';
 
     options = options || {};
     extension = typeof extension === "undefined" ? '.js' : extension;
@@ -70,7 +68,20 @@ module.exports = function(grunt) {
     }
 
     try {
-      js = coffee.compile(grunt.file.read(src), options);
+      var source = grunt.file.read(src);
+      var js = '';
+
+      if (options.source_maps) {
+        var CoffeeScript = require('CoffeeScriptRedux');
+        var parsed    = CoffeeScript.parse(source, { optimize: false });
+        var jsAST     = CoffeeScript.compile(parsed, { bare: options.bare });
+        var sourceMap = CoffeeScript.sourceMap(jsAST, source);
+        grunt.file.write(dest+'.map', sourceMap);
+        js = CoffeeScript.js(jsAST, { minify: false });
+      } else {
+        var CoffeeScript = require('coffee-script');
+        js = CoffeeScript.compile(source, options);
+      }
       grunt.file.write(dest, js);
       return true;
     } catch (e) {
